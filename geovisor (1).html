@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geovisor · Unidades de Atención</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  :root{
+    --ink:#0a1e28;
+    --panel:#0f2733;
+    --panel-2:#123140;
+    --line: rgba(232,242,240,0.10);
+    --text:#e9f2f0;
+    --muted:#83a3a6;
+    --amber:#e6a13c;
+    --amber-dim: rgba(230,161,60,0.16);
+    --ok:#4f9d76;
+    --ok-dim: rgba(79,157,118,0.16);
+    --alert:#d5604f;
+    --alert-dim: rgba(213,96,79,0.16);
+    --neutral:#7c93a1;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    overflow:hidden;
+  }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  #app{
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    grid-template-rows: 64px 1fr;
+    grid-template-areas:
+      "topbar topbar"
+      "sidebar map";
+    height:100vh;
+    width:100vw;
+  }
+
+  /* ---------- TOPBAR ---------- */
+  #topbar{
+    grid-area: topbar;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:0 20px;
+    background:var(--panel);
+    border-bottom:1px solid var(--line);
+    z-index:20;
+  }
+  .brand{
+    display:flex; align-items:baseline; gap:10px; white-space:nowrap;
+  }
+  .brand .mark{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 0 3px var(--amber-dim);
+    flex:none;
+  }
+  .brand h1{
+    font-size:16px; font-weight:700; letter-spacing:0.01em; margin:0;
+  }
+  .brand span.sub{
+    color:var(--muted); font-size:12px;
+  }
+  #status-line{
+    margin-left:auto;
+    display:flex; align-items:center; gap:16px;
+    font-size:12px; color:var(--muted);
+  }
+  #status-line .count b{ color:var(--text); font-size:14px; }
+  #refresh-btn{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:8px 14px;
+    border-radius:6px;
+    cursor:pointer;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    display:flex; align-items:center; gap:8px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  #refresh-btn:hover{ border-color:var(--amber); background:var(--panel); }
+  #refresh-btn.spinning svg{ animation: spin 0.9s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---------- SIDEBAR ---------- */
+  #sidebar{
+    grid-area: sidebar;
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  #filters{
+    padding:16px 18px 12px;
+    border-bottom:1px solid var(--line);
+    display:flex; flex-direction:column; gap:10px;
+  }
+  #filters input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:9px 12px;
+    border-radius:6px;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13px;
+    outline:none;
+  }
+  #filters input[type="text"]:focus{ border-color:var(--amber); }
+  .filter-row{ display:flex; gap:8px; }
+  .filter-row select{
+    flex:1;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:8px 8px;
+    border-radius:6px;
+    font-size:12px;
+    font-family:'JetBrains Mono',monospace;
+    outline:none;
+  }
+  .legend{
+    display:flex; gap:14px; padding-top:2px; flex-wrap:wrap;
+    font-size:11px; color:var(--muted);
+  }
+  .legend .dot{ width:8px;height:8px;border-radius:50%; display:inline-block; margin-right:5px; }
+
+  #zone-stats{
+    padding:14px 18px;
+    border-bottom:1px solid var(--line);
+    flex:none;
+  }
+  #zone-stats .zs-title{
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+    margin-bottom:10px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  #zone-stats .zs-list{
+    display:flex; flex-direction:column; gap:7px;
+    max-height:150px; overflow-y:auto;
+  }
+  .zs-row{
+    display:flex; align-items:center; gap:10px; font-size:12px;
+  }
+  .zs-row .zs-name{
+    flex:1; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .zs-row .zs-bar{
+    height:5px; border-radius:3px; background:var(--amber);
+    opacity:0.75;
+  }
+  .zs-row .zs-count{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--muted);
+    min-width:20px; text-align:right;
+  }
+  .zs-track{ flex:1.2; background:var(--panel-2); border-radius:3px; height:5px; overflow:hidden; }
+
+  #list-wrap{
+    flex:1;
+    overflow-y:auto;
+    padding: 6px 0 20px;
+  }
+  #list-header{
+    padding:10px 18px 6px;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .record{
+    padding:12px 18px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    transition: background .12s ease;
+  }
+  .record:hover{ background:var(--panel-2); }
+  .record.active{ background:var(--amber-dim); border-left:2px solid var(--amber); padding-left:16px; }
+  .record .r-top{
+    display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px;
+  }
+  .record .r-name{ font-weight:600; font-size:13px; }
+  .record .r-badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    padding:2px 7px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .badge-activa{ background:var(--ok-dim); color:var(--ok); }
+  .badge-suspendida{ background:var(--alert-dim); color:var(--alert); }
+  .badge-otro{ background:rgba(124,147,161,0.16); color:var(--neutral); }
+  .record .r-meta{ font-size:11.5px; color:var(--muted); line-height:1.5; }
+  .record .r-meta .mono{ color:#a9c2c3; }
+  #empty-state{
+    padding:30px 18px; color:var(--muted); font-size:12.5px; line-height:1.6;
+  }
+
+  /* ---------- MAP ---------- */
+  #map{ grid-area: map; width:100%; height:100%; background:var(--ink); }
+  .leaflet-popup-content-wrapper{
+    background:var(--panel);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .leaflet-popup-tip{ background:var(--panel); }
+  .popup h3{ margin:0 0 6px; font-size:14px; font-family:'Space Grotesk',sans-serif;}
+  .popup .p-row{ font-size:12px; color:var(--muted); margin:2px 0; }
+  .popup .p-row b{ color:var(--text); font-weight:500; }
+  .popup a{ color:var(--amber); text-decoration:none; font-size:12px; }
+  .popup a:hover{ text-decoration:underline; }
+  .popup .p-badge{
+    display:inline-block; font-family:'JetBrains Mono',monospace; font-size:10px;
+    padding:2px 8px; border-radius:20px; margin-bottom:8px;
+  }
+  .popup .p-photo-link{ display:block; margin-top:8px; }
+  .popup .p-thumb{
+    width:100%; max-width:220px; max-height:130px;
+    object-fit:cover; border-radius:6px; border:1px solid var(--line);
+    display:block;
+  }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:var(--panel-2); border-radius:4px; }
+
+  /* mobile */
+  @media (max-width: 760px){
+    #app{
+      grid-template-columns: 1fr;
+      grid-template-rows: 60px 46vh 1fr;
+      grid-template-areas:
+        "topbar"
+        "sidebar"
+        "map";
+    }
+    .brand span.sub{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="topbar">
+    <div class="brand">
+      <span class="mark"></span>
+      <h1>GEOVISOR&nbsp;UA</h1>
+      <span class="sub mono">levantamiento en campo · datos en vivo</span>
+    </div>
+    <div id="status-line">
+      <span class="count"><b id="count-visible">–</b> / <span id="count-total">–</span> registros</span>
+      <span id="last-update">actualizado —</span>
+      <button id="refresh-btn" title="Actualizar ahora">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        actualizar
+      </button>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div id="filters">
+      <input type="text" id="search" placeholder="Buscar por UA, cantón, código…">
+      <div class="filter-row">
+        <select id="f-estado"><option value="">Estado: todos</option></select>
+        <select id="f-provincia"><option value="">Provincia: todas</option></select>
+      </div>
+      <div class="filter-row">
+        <select id="f-tipo"><option value="">Tipo: todos</option></select>
+        <select id="f-servicio"><option value="">Servicio: todos</option></select>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--ok)"></span>Activa</span>
+        <span><span class="dot" style="background:var(--alert)"></span>Suspendida</span>
+        <span><span class="dot" style="background:var(--neutral)"></span>Otro</span>
+      </div>
+    </div>
+    <div id="zone-stats">
+      <div class="zs-title"><span>Totales por zona</span><span id="zs-scope">(según filtros)</span></div>
+      <div class="zs-list" id="zs-list"></div>
+    </div>
+    <div id="list-wrap">
+      <div id="list-header">Bitácora de puntos</div>
+      <div id="record-list"></div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<script>
+/* ---------------- CONFIG ---------------- */
+const SHEET_ID = "1gE6LaFEWhr5Z97YGMl28SIQTvQb-Fu9jmcwLK_Kg03o";
+const SHEET_NAME = "Public Form";
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&_ts=`;
+const REFRESH_MS = 60000; // auto-refresh cada 60s
+
+/* ---------------- MAP INIT ---------------- */
+const map = L.map('map', { zoomControl:false, attributionControl:true }).setView([-1.5, -78.4], 6.3);
+L.control.zoom({ position:'bottomright' }).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+const markerLayer = L.layerGroup().addTo(map);
+
+/* ---------------- STATE ---------------- */
+let allRecords = [];
+let markersById = {};
+let activeId = null;
+
+/* ---------------- HELPERS ---------------- */
+function colorForEstado(estado){
+  const e = (estado||'').trim().toLowerCase();
+  if(e === 'activa') return { hex:'#4f9d76', badge:'badge-activa' };
+  if(e === 'suspendida') return { hex:'#d5604f', badge:'badge-suspendida' };
+  return { hex:'#7c93a1', badge:'badge-otro' };
+}
+
+function parseLatLng(val){
+  if(!val) return null;
+  const parts = val.split(',').map(s => parseFloat(s.trim()));
+  if(parts.length !== 2 || parts.some(isNaN)) return null;
+  const [lat, lng] = parts;
+  if(lat === 0 && lng === 0) return null; // placeholder sin ubicación real
+  if(lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
+}
+
+function makeDivIcon(hex, isActive){
+  const size = isActive ? 18 : 13;
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:${hex};
+      border:2px solid rgba(10,30,40,0.9);
+      box-shadow:0 0 0 4px ${hex}33, 0 1px 4px rgba(0,0,0,0.5);
+    "></div>`,
+    iconSize:[size,size],
+    iconAnchor:[size/2,size/2]
+  });
+}
+
+function populateSelect(id, values){
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  const base = sel.options[0];
+  sel.innerHTML = '';
+  sel.appendChild(base);
+  [...values].filter(Boolean).sort().forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  if([...sel.options].some(o => o.value === current)) sel.value = current;
+}
+
+/* ---------------- DATA LOAD ---------------- */
+async function loadData(){
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  try{
+    const res = await fetch(CSV_URL + Date.now());
+    const text = await res.text();
+    const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
+    const rows = parsed.data;
+
+    allRecords = rows.map((r, i) => {
+      const loc = parseLatLng(r['UBICACIÓN']);
+      return {
+        id: r['ID'] || ('row-' + i),
+        nombre: r['NOMBRES Y APELLIDOS'] || '',
+        cargo: r['CARGO'] || '',
+        fecha: r['FECHA'] || '',
+        hora: r['HORA'] || '',
+        nombreUA: r['NOMBRE UA'] || 'Sin nombre',
+        codigoUA: r['CÓDIGO UA'] || '',
+        estado: r['ESTADO UA'] || '',
+        tipo: r['TIPO UA'] || '',
+        servicio: r['SERVICIO UA'] || '',
+        modalidad: r['MODALIDAD UA'] || '',
+        provincia: r['PROVINCIA'] || '',
+        canton: r['CANTÓN'] || '',
+        parroquia: r['PARROQUIA'] || '',
+        zona: r['ZONA'] || '',
+        distrito: r['DISTRITO'] || '',
+        calle1: r['CALLE 1'] || '',
+        calle2: r['CALLE 2'] || '',
+        numero: r['NÚMERO CASA'] || '',
+        referencia: r['REFERENCIA'] || '',
+        linkFoto: r['LINK_FOTO'] || '',
+        loc
+      };
+    }).filter(r => r.nombreUA || r.codigoUA || r.loc);
+
+    document.getElementById('count-total').textContent = allRecords.length;
+    populateSelect('f-estado', new Set(allRecords.map(r=>r.estado)));
+    populateSelect('f-provincia', new Set(allRecords.map(r=>r.provincia)));
+    populateSelect('f-tipo', new Set(allRecords.map(r=>r.tipo)));
+    populateSelect('f-servicio', new Set(allRecords.map(r=>r.servicio)));
+
+    render();
+    document.getElementById('last-update').textContent =
+      'actualizado ' + new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'});
+  }catch(err){
+    console.error(err);
+    document.getElementById('last-update').textContent = 'error al actualizar';
+  }finally{
+    setTimeout(()=>btn.classList.remove('spinning'), 400);
+  }
+}
+
+/* ---------------- FILTER + RENDER ---------------- */
+function getFiltered(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const fEstado = document.getElementById('f-estado').value;
+  const fProv = document.getElementById('f-provincia').value;
+  const fTipo = document.getElementById('f-tipo').value;
+  const fServ = document.getElementById('f-servicio').value;
+
+  return allRecords.filter(r => {
+    if(fEstado && r.estado !== fEstado) return false;
+    if(fProv && r.provincia !== fProv) return false;
+    if(fTipo && r.tipo !== fTipo) return false;
+    if(fServ && r.servicio !== fServ) return false;
+    if(q){
+      const hay = [r.nombreUA, r.codigoUA, r.canton, r.parroquia, r.provincia, r.servicio]
+        .join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderZoneStats(filtered){
+  const counts = {};
+  filtered.forEach(r => {
+    const z = (r.zona || 'Sin zona').trim() || 'Sin zona';
+    counts[z] = (counts[z] || 0) + 1;
+  });
+  const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const max = entries.length ? entries[0][1] : 1;
+
+  const list = document.getElementById('zs-list');
+  list.innerHTML = '';
+  if(entries.length === 0){
+    list.innerHTML = '<div style="color:var(--muted); font-size:12px;">Sin datos</div>';
+    return;
+  }
+  entries.forEach(([zona, count]) => {
+    const pct = Math.max(8, Math.round((count/max)*100));
+    const row = document.createElement('div');
+    row.className = 'zs-row';
+    row.innerHTML = `
+      <span class="zs-name" title="${escapeHtml(zona)}">${escapeHtml(zona)}</span>
+      <span class="zs-track"><span class="zs-bar" style="width:${pct}%"></span></span>
+      <span class="zs-count">${count}</span>`;
+    list.appendChild(row);
+  });
+}
+
+function render(){
+  const filtered = getFiltered();
+  document.getElementById('count-visible').textContent = filtered.length;
+  renderZoneStats(filtered);
+
+  // markers
+  markerLayer.clearLayers();
+  markersById = {};
+  const withLoc = filtered.filter(r => r.loc);
+
+  withLoc.forEach(r => {
+    const c = colorForEstado(r.estado);
+    const marker = L.marker([r.loc.lat, r.loc.lng], { icon: makeDivIcon(c.hex, r.id === activeId) });
+    marker.bindPopup(buildPopup(r));
+    marker.on('click', () => setActive(r.id, false));
+    marker.addTo(markerLayer);
+    markersById[r.id] = marker;
+  });
+
+  // list
+  const list = document.getElementById('record-list');
+  list.innerHTML = '';
+  if(filtered.length === 0){
+    list.innerHTML = '<div id="empty-state">No hay registros para estos filtros.<br>Ajusta la búsqueda o espera a que se levante más información.</div>';
+    return;
+  }
+  filtered.forEach(r => {
+    const c = colorForEstado(r.estado);
+    const div = document.createElement('div');
+    div.className = 'record' + (r.id === activeId ? ' active' : '');
+    div.dataset.id = r.id;
+    div.innerHTML = `
+      <div class="r-top">
+        <span class="r-name">${escapeHtml(r.nombreUA)}</span>
+        <span class="r-badge ${c.badge}">${escapeHtml(r.estado || 's/d')}</span>
+      </div>
+      <div class="r-meta">
+        <span class="mono">${escapeHtml(r.codigoUA || '—')}</span> · ${escapeHtml(r.canton || '—')}, ${escapeHtml(r.provincia || '—')}<br>
+        ${escapeHtml(r.servicio || '')}${r.loc ? '' : ' · <span style="color:var(--alert)">sin coordenadas</span>'}
+      </div>`;
+    div.addEventListener('click', () => setActive(r.id, true));
+    list.appendChild(div);
+  });
+}
+
+function buildPopup(r){
+  const c = colorForEstado(r.estado);
+  const dir = [r.calle1, r.calle2].filter(Boolean).join(' y ');
+  return `
+    <div class="popup">
+      <span class="p-badge ${r.estado.toLowerCase()==='activa' ? 'badge-activa' : r.estado.toLowerCase()==='suspendida' ? 'badge-suspendida' : 'badge-otro'}">${escapeHtml(r.estado || 's/d')}</span>
+      <h3>${escapeHtml(r.nombreUA)}</h3>
+      <div class="p-row"><b>Código:</b> ${escapeHtml(r.codigoUA || '—')}</div>
+      <div class="p-row"><b>Tipo / Servicio:</b> ${escapeHtml(r.tipo || '—')} · ${escapeHtml(r.servicio || '—')}</div>
+      <div class="p-row"><b>Modalidad:</b> ${escapeHtml(r.modalidad || '—')}</div>
+      <div class="p-row"><b>Ubicación admin.:</b> ${escapeHtml(r.parroquia || '—')}, ${escapeHtml(r.canton || '—')}, ${escapeHtml(r.provincia || '—')}</div>
+      ${dir ? `<div class="p-row"><b>Dirección:</b> ${escapeHtml(dir)} ${escapeHtml(r.numero||'')}</div>` : ''}
+      ${r.referencia ? `<div class="p-row"><b>Referencia:</b> ${escapeHtml(r.referencia)}</div>` : ''}
+      <div class="p-row"><b>Levantado:</b> ${escapeHtml(r.fecha || '—')} ${escapeHtml(r.hora || '')} por ${escapeHtml(r.nombre || '—')}</div>
+      ${r.linkFoto ? `
+        <a href="${r.linkFoto}" target="_blank" rel="noopener" class="p-photo-link">
+          <img src="${r.linkFoto}" alt="Fotografía de ${escapeHtml(r.nombreUA)}" class="p-thumb"
+               onerror="this.closest('.p-photo-link').innerHTML='<span class=&quot;p-row&quot;>Ver fotografía →</span>'">
+        </a>` : '<div class="p-row" style="opacity:0.6;">Sin fotografía registrada</div>'}
+    </div>`;
+}
+
+function setActive(id, flyTo){
+  activeId = id;
+  render();
+  const rec = allRecords.find(r => r.id === id);
+  if(rec && rec.loc && flyTo){
+    map.flyTo([rec.loc.lat, rec.loc.lng], Math.max(map.getZoom(), 13), { duration: 0.6 });
+  }
+  const marker = markersById[id];
+  if(marker) marker.openPopup();
+  const el = document.querySelector(`.record[data-id="${CSS.escape(id)}"]`);
+  if(el) el.scrollIntoView({ block:'nearest' });
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+/* ---------------- EVENTS ---------------- */
+document.getElementById('search').addEventListener('input', render);
+['f-estado','f-provincia','f-tipo','f-servicio'].forEach(id =>
+  document.getElementById(id).addEventListener('change', render)
+);
+document.getElementById('refresh-btn').addEventListener('click', loadData);
+
+/* ---------------- INIT ---------------- */
+loadData();
+setInterval(loadData, REFRESH_MS);
+</script>
+</body>
+</html>
