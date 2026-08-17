@@ -21,8 +21,11 @@ function escapeHtml(str){
 
 function colorForEstado(estado){
   const e = (estado || '').trim().toLowerCase();
-  if(e === 'activa') return { hex:'#4f9d76', badge:'badge-activa' };
-  if(e === 'suspendida') return { hex:'#d5604f', badge:'badge-suspendida' };
+  if(e === 'abierta') return { hex:'#4f9d76', badge:'badge-abierta' };
+  if(e === 'receso') return { hex:'#e6a13c', badge:'badge-receso' };
+  if(e === 'cerrada') return { hex:'#d5604f', badge:'badge-cerrada' };
+  // "Otras" agrupa Registrada, Suspendida, y cualquier otro valor que no sea
+  // Abierta/Receso/Cerrada.
   return { hex:'#7c93a1', badge:'badge-otro' };
 }
 
