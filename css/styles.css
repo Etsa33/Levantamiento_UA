@@ -57,7 +57,7 @@ body{
   flex:none;
 }
 .brand h1{
-  font-size:16px; font-weight:700; letter-spacing:0.01em; margin:0;
+  font-size:14px; font-weight:700; letter-spacing:0.01em; margin:0;
 }
 .brand span.sub{
   color:var(--muted); font-size:12px;
@@ -250,8 +250,9 @@ body{
   border-radius:20px;
   white-space:nowrap;
 }
-.badge-activa{ background:var(--ok-dim); color:var(--ok); }
-.badge-suspendida{ background:var(--alert-dim); color:var(--alert); }
+.badge-abierta{ background:var(--ok-dim); color:var(--ok); }
+.badge-receso{ background:var(--amber-dim); color:var(--amber); }
+.badge-cerrada{ background:var(--alert-dim); color:var(--alert); }
 .badge-otro{ background:rgba(124,147,161,0.16); color:var(--neutral); }
 .record .r-meta{ font-size:11.5px; color:var(--muted); line-height:1.5; }
 .record .r-meta .mono{ color:#a9c2c3; }
