@@ -32,7 +32,7 @@ function getFiltered(){
   if(selectedProvinceNorm) list = list.filter(r => normalizeName(r.provincia) === selectedProvinceNorm);
   const fCanton = document.getElementById('f-canton').value;
   if(fCanton) list = list.filter(r => r.canton === fCanton);
-  return list;
+  return list.slice().sort((a, b) => recordTimestamp(b) - recordTimestamp(a)); // más nuevo primero
 }
 
 // Dibuja una lista de totales tipo "NOMBRE ---- N" (sin texto extra),
