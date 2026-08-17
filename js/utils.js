@@ -75,3 +75,19 @@ function shortenZona(zona){
   if(match) return 'ZONA ' + match[1];
   return zona.trim() || 'Sin zona';
 }
+
+// Convierte "fecha" (M/D/AAAA) + "hora" (H:MM:SS) del registro en un timestamp
+// numérico, para poder ordenar la bitácora del más nuevo al más antiguo.
+// Si no se puede interpretar, devuelve 0 (queda al final del orden).
+function recordTimestamp(r){
+  if(!r.fecha) return 0;
+  const [m, d, y] = r.fecha.split('/').map(Number);
+  if(!m || !d || !y) return 0;
+  let h = 0, mi = 0, s = 0;
+  if(r.hora){
+    const partes = r.hora.split(':').map(Number);
+    h = partes[0] || 0; mi = partes[1] || 0; s = partes[2] || 0;
+  }
+  const dt = new Date(y, m - 1, d, h, mi, s);
+  return isNaN(dt.getTime()) ? 0 : dt.getTime();
+}
