@@ -148,9 +148,10 @@ function render(){
 
 function buildPopup(r){
   const dir = [r.calle1, r.calle2].filter(Boolean).join(' y ');
+  const c = colorForEstado(r.estado);
   return `
     <div class="popup">
-      <span class="p-badge ${r.estado.toLowerCase()==='activa' ? 'badge-activa' : r.estado.toLowerCase()==='suspendida' ? 'badge-suspendida' : 'badge-otro'}">${escapeHtml(r.estado || 's/d')}</span>
+      <span class="p-badge ${c.badge}">${escapeHtml(r.estado || 's/d')}</span>
       <h3>${escapeHtml(r.nombreUA)}</h3>
       <div class="p-row"><b>Código:</b> ${escapeHtml(r.codigoUA || '—')}</div>
       <div class="p-row"><b>Tipo / Servicio:</b> ${escapeHtml(r.tipo || '—')} · ${escapeHtml(r.servicio || '—')}</div>
