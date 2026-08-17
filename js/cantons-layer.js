@@ -59,10 +59,11 @@ function refreshCantonVisibility(){
 }
 
 function loadCantonesGeo(){
-  if(DATA_SOURCE !== 'php'){
-    return; // esta capa solo existe en tu tabla PostgreSQL, no hay versión "Sheet"
-  }
-  fetch(PHP_GET_CANTONES_URL)
+  // Si hay PostgreSQL (XAMPP local), usa tu tabla en vivo vía PHP.
+  // Si no (ej. GitHub Pages), usa el archivo geojson/cantones.geojson fijo.
+  const url = (DATA_SOURCE === 'php') ? PHP_GET_CANTONES_URL : CANTONS_GEOJSON_URL;
+
+  fetch(url)
     .then(res => res.json())
     .then(geo => {
       const totalFeatures = (geo.features || []).length;
