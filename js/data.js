@@ -7,6 +7,18 @@
 
 // Normaliza un registro crudo (fila del CSV o fila de PostgreSQL) a un
 // mismo formato interno, sin importar de qué fuente vino.
+// Busca una columna del CSV sin importar mayúsculas/minúsculas, espacios o
+// guiones bajos exactos (ej. encuentra "Link_Foto_Cuen" o "LINK FOTO CUEN"
+// aunque el código pida "LINKFOTOCUEN"). Solo se usa para las fotos, que son
+// las columnas que más han cambiado de nombre en el formulario.
+function findColumnValue(row, targetName){
+  for(const key in row){
+    const k = key.toString().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if(k === targetName) return row[key] || '';
+  }
+  return '';
+}
+
 function normalizeRecordFromSheetRow(r, i){
   const loc = parseLatLng(r['UBICACIÓN']);
   return {
@@ -30,8 +42,8 @@ function normalizeRecordFromSheetRow(r, i){
     calle2: r['CALLE 2'] || '',
     numero: r['NÚMERO CASA'] || '',
     referencia: r['REFERENCIA'] || '',
-    linkFotoCuen: r['LINK_FOTO_CUEN'] || '',
-    linkFotoFachada: r['LINK_FOTO_FACHADA'] || '',
+    linkFotoCuen: findColumnValue(r, 'LINKFOTOCUEN'),
+    linkFotoFachada: findColumnValue(r, 'LINKFOTOFACHADA'),
     loc
   };
 }
