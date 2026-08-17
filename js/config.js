@@ -41,11 +41,14 @@ const PHP_GET_CANTONES_URL = 'php/get_cantones.php';      // cantones_25, import
    esa opción, pero NO reemplaza un control de acceso real (usuario y
    sesión en el servidor). Si necesitas eso, dímelo y lo pasamos al
    backend PHP (que sí puede validar sin exponer nada al navegador). */
-const ADMIN_PASSWORD = '1720166469';
+const ADMIN_PASSWORD = 'cambia_esta_clave';
 
 /* ---------- Capa de PROVINCIAS (ya activa) ---------- */
-// Límites de provincias del Ecuador (GeoJSON público, equivalente al shapefile)
-const PROVINCES_GEOJSON_URL = "https://raw.githubusercontent.com/pabl-o-ce/Ecuador-geoJSON/master/geojson/provinces.geojson";
+// Límites de provincias del Ecuador — se usa SOLO cuando DATA_SOURCE = 'sheet'
+// (ej. en GitHub Pages, donde no hay PHP/PostgreSQL). Cuando DATA_SOURCE = 'php',
+// se usa en cambio tu propia tabla provincias_25 vía PHP_GET_PROVINCIAS_URL.
+// Este archivo lo generas tú mismo exportando get_provincias.php (ver README).
+const PROVINCES_GEOJSON_URL = "geojson/provincias.geojson";
 
 const PROVINCE_LABELS = [
   'Azuay','Bolívar','Cañar','Carchi','Chimborazo','Cotopaxi','El Oro','Esmeraldas',
@@ -54,30 +57,19 @@ const PROVINCE_LABELS = [
   'Sucumbíos','Tungurahua','Zamora Chinchipe'
 ];
 
-/* ---------- Capas futuras: CANTONES / PARROQUIAS ----------
-   Todavía no están activas. Para agregarlas más adelante:
+// Igual que arriba, pero para cantones: se usa cuando DATA_SOURCE = 'sheet'.
+// Generado exportando get_cantones.php (ver README).
+const CANTONS_GEOJSON_URL = "geojson/cantones.geojson";
 
-   1. Consigue un GeoJSON de cantones o parroquias del Ecuador
-      (por ejemplo, del mismo repo que usamos para provincias:
-      https://github.com/pabl-o-ce/Ecuador-geoJSON, archivo
-      "cantons.geojson" o "parishes.geojson"), o expórtalo tú
-      mismo desde QGIS/PostGIS a GeoJSON (Capa → Exportar →
-      Guardar objetos como… → formato GeoJSON).
+/* ---------- Capa futura: PARROQUIAS ----------
+   Todavía no está activa. Sigue el mismo patrón usado para cantones
+   (js/cantons-layer.js es la plantilla a copiar): exporta la tabla de
+   parroquias con QGIS a PostgreSQL, arma un php/get_parroquias.php
+   copiando get_cantones.php, y agrega aquí la URL:
 
-   2. Pon aquí la URL (puede ser un link raw de GitHub, o un
-      archivo que subas junto a este proyecto, ej:
-      "geojson/cantones.geojson"):
+   const PARISHES_PHP_URL = 'php/get_parroquias.php';
+   const PARISHES_GEOJSON_URL = 'geojson/parroquias.geojson'; // para GitHub Pages
 
-         const CANTONS_GEOJSON_URL = "";
-         const PARISHES_GEOJSON_URL = "";
-
-   3. Sigue el mismo patrón que ves en js/provinces-layer.js
-      (esa es la plantilla a copiar): normalizar el nombre,
-      encontrar la propiedad correcta del GeoJSON, dibujar el
-      polígono, filtrar al hacer clic. La diferencia importante
-      es que los nombres de cantón NO son siempre únicos en
-      todo el país, así que conviene comparar cantón + provincia
-      juntos al hacer el match, no solo el nombre del cantón.
+   Ojo: los nombres de parroquia son aún menos únicos que los de cantón,
+   así que conviene identificarlas combinando parroquia + cantón + provincia.
    ------------------------------------------------------------ */
-const CANTONS_GEOJSON_URL = null;   // <- cuando la actives, pon aquí la URL
-const PARISHES_GEOJSON_URL = null;  // <- cuando la actives, pon aquí la URL
