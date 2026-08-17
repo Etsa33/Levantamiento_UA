@@ -33,27 +33,7 @@ document.getElementById('export-all').addEventListener('click', () => {
 
 document.getElementById('ai-btn').addEventListener('click', runAnomalyDetector);
 
-document.getElementById('admin-toggle').addEventListener('click', () => {
-  if(isAdminMode){
-    isAdminMode = false;
-    const btn = document.getElementById('admin-toggle');
-    btn.textContent = '🔒 Admin';
-    btn.classList.remove('admin-active');
-    render(); // vuelve a dibujar los popups sin el botón "Editar"
-    return;
-  }
-  const pass = prompt('Contraseña de administrador (solo para supervisores):');
-  if(pass === null) return; // canceló
-  if(pass === ADMIN_PASSWORD){
-    isAdminMode = true;
-    const btn = document.getElementById('admin-toggle');
-    btn.textContent = '🔓 Admin activo';
-    btn.classList.add('admin-active');
-    render();
-  } else {
-    alert('Contraseña incorrecta.');
-  }
-});
+
 
 /* ---------------- INIT ---------------- */
 loadProvincesGeo();
