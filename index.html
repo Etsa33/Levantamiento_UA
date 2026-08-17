@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Geoportal · Unidades de Atención</title>
+<title>Geoportal - Unidades de Atención</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -22,14 +22,15 @@
   <div id="topbar">
     <div class="brand">
       <span class="mark"></span>
-      <h1>GEOPORTAL&nbsp;UNIDADES DE ATENCIÓN</h1>
+      <h1>GEOPORTAL&nbsp;-&nbsp;UNIDADES&nbsp;DE&nbsp;ATENCIÓN</h1>
       <span class="sub mono">levantamiento en campo · datos en vivo</span>
     </div>
     <div id="status-line">
       <span class="count"><b id="count-visible">–</b> / <span id="count-total">–</span> registros</span>
       <span id="last-update">actualizado —</span>
       <button id="ai-btn" title="Detectar posibles errores de ubicación">🤖 IA: anomalías</button>
-            <button id="refresh-btn" title="Actualizar ahora">
+      <button id="admin-toggle" title="Solo para supervisores: habilita la edición de puntos">🔒 Admin</button>
+      <button id="refresh-btn" title="Actualizar ahora">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
         actualizar
       </button>
@@ -51,9 +52,10 @@
         <select id="f-servicio"><option value="">Servicio: todos</option></select>
       </div>
       <div class="legend">
-        <span><span class="dot" style="background:var(--ok)"></span>Activa</span>
-        <span><span class="dot" style="background:var(--alert)"></span>Suspendida</span>
-        <span><span class="dot" style="background:var(--neutral)"></span>Otro</span>
+        <span><span class="dot" style="background:var(--ok)"></span>Abierta</span>
+        <span><span class="dot" style="background:var(--amber)"></span>Receso</span>
+        <span><span class="dot" style="background:var(--alert)"></span>Cerrada</span>
+        <span><span class="dot" style="background:var(--neutral)"></span>Otras</span>
       </div>
       <div class="export-row">
         <button id="export-filtered" class="export-btn">⬇ Excel (filtro actual)</button>
